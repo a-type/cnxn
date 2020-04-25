@@ -1,45 +1,21 @@
 import OrbitDB from 'orbit-db';
 import { create } from 'ipfs';
 
-export async function createClient() {
+async function createClient() {
   const node = await create({
-    preload: { enabled: false },
     repo: './ipfs',
     EXPERIMENTAL: { pubsub: true },
-    config: {
-      Bootstrap: [],
-      Addresses: { Swarm: [] },
-    },
+    relay: { enabled: true, hop: { enabled: true, active: true } },
   });
 
   const orbitdb = await OrbitDB.createInstance(node);
   console.log(orbitdb.id);
 
-  const defaultOptions = {
-    accessController: {
-      write: [orbitdb.identity.id],
-    },
-  };
+  return orbitdb;
+}
 
-  const documentStoreOptions = {
-    ...defaultOptions,
-    indexBy: 'hash',
-  };
+const clientPromise = createClient();
 
-  // creates a new document database
-  const pieces = await orbitdb.docs('pieces', documentStoreOptions);
-  // loads the database contents into memory
-  await pieces.load();
-
-  const user = await orbitdb.kvstore('user', defaultOptions);
-  await user.load();
-  await user.set('pieces', pieces.id);
-
-  console.log(`Pieces: ${pieces.id}`);
-
-  return {
-    node,
-    pieces,
-    user,
-  };
+export function getClient() {
+  return clientPromise;
 }

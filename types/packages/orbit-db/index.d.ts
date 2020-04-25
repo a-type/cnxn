@@ -55,13 +55,14 @@ declare module 'orbit-db' {
     new (): Store;
   }
 
-  interface Store {
+  export interface Store {
     load(amount?: number, fetchEntryTimeout?: any): Promise<void>;
     close(): Promise<void>;
     drop(): Promise<void>;
     readonly identity: Identity;
     readonly type: string;
     readonly id: string;
+    readonly address: string;
     /**
      * Available events:
      * - replicated
@@ -77,41 +78,41 @@ declare module 'orbit-db' {
     events: EventEmitter;
   }
 
-  interface KeyValueStore extends Store {
-    put(key: string, value: any): Promise<string>;
-    set(key: string, value: any): Promise<string>;
-    get(key: string): any;
-    del(key: string): Promise<string>;
+  export interface KeyValueStore<S extends Object = {}> extends Store {
+    put<K extends keyof S>(key: K, value: S[K]): Promise<string>;
+    set<K extends keyof S>(key: K, value: S[K]): Promise<string>;
+    get<K extends keyof S>(key: K): S[K];
+    del(key: keyof S): Promise<string>;
     /** all loaded values */
-    readonly all: Record<string, any>;
+    readonly all: S;
   }
 
-  interface EventStore extends Store {
-    add(event: any): Promise<string>;
-    get(hash: string): any;
+  export interface EventStore<E = any> extends Store {
+    add(event: E): Promise<string>;
+    get(hash: string): E;
     iterator(options?: SequentialStoreIteratorOptions): RecordIterator;
   }
 
-  interface FeedStore extends Store {
-    add(data: any): Promise<string>;
-    get(hash: string): any;
-    remove(hash: string): Promise<any>;
+  export interface FeedStore<E = any> extends Store {
+    add(data: E): Promise<string>;
+    get(hash: string): E;
+    remove(hash: string): Promise<E>;
     iterator(options?: SequentialStoreIteratorOptions): RecordIterator;
   }
 
-  interface DocumentStore extends Store {
-    put(doc: any): Promise<string>;
-    get(key: string): any[];
-    query(mapper: (doc: any) => boolean): any[];
+  export interface DocumentStore<D = any> extends Store {
+    put(doc: D): Promise<string>;
+    get(key: string): D[];
+    query(mapper: (doc: D) => boolean): D[];
     del(key: string): Promise<string>;
   }
 
-  interface CounterStore extends Store {
+  export interface CounterStore extends Store {
     readonly value: number;
     inc(value?: number): Promise<string>;
   }
 
-  class OrbitDB {
+  export class OrbitDB {
     readonly id: string;
     readonly identity: Identity;
 
@@ -129,34 +130,22 @@ declare module 'orbit-db' {
 
     /** opens an existing databse (or creates it with the 'create' option) */
     open(address: string, options?: OpenOptions): Promise<Store>;
-    feed(
+    feed<E = any>(
       address: string,
       options?: Omit<OpenOptions, 'type'>,
-    ): Promise<FeedStore>;
-    docs(
+    ): Promise<FeedStore<E>>;
+    docs<D = any>(
       address: string,
       options?: OpenDocumentStoreOptions,
-    ): Promise<DocumentStore>;
-    docstore(
-      address: string,
-      options?: OpenDocumentStoreOptions,
-    ): Promise<DocumentStore>;
-    log(
+    ): Promise<DocumentStore<D>>;
+    log<E = any>(
       address: string,
       options?: Omit<OpenOptions, 'type'>,
-    ): Promise<EventStore>;
-    eventlog(
+    ): Promise<EventStore<E>>;
+    keyvalue<V = any>(
       address: string,
       options?: Omit<OpenOptions, 'type'>,
-    ): Promise<EventStore>;
-    keyvalue(
-      address: string,
-      options?: Omit<OpenOptions, 'type'>,
-    ): Promise<KeyValueStore>;
-    kvstore(
-      address: string,
-      options?: Omit<OpenOptions, 'type'>,
-    ): Promise<KeyValueStore>;
+    ): Promise<KeyValueStore<V>>;
     counter(
       address: string,
       options?: Omit<OpenOptions, 'type'>,

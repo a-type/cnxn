@@ -1,10 +1,17 @@
 import * as React from 'react';
 import { useDarkMode, DarkModeProvider } from './contexts/DarkModeContext';
-import { ThemeProvider, Button, CssBaseline } from '@material-ui/core';
+import {
+  ThemeProvider,
+  Button,
+  CssBaseline,
+  Box,
+  CircularProgress,
+} from '@material-ui/core';
 import { SnackbarProvider } from 'notistack';
 import { darkTheme, lightTheme } from './theme/theme';
 import Navigation from './components/Navigation';
 import { BrowserRouter } from 'react-router-dom';
+import { ProfilePage } from './pages/ProfilePage';
 
 function InternalApp() {
   const { dark } = useDarkMode();
@@ -24,7 +31,21 @@ function InternalApp() {
           action={(key) => <Button onClick={onClickDismiss(key)}>Close</Button>}
         >
           <div className="App">
-            <Navigation />
+            <React.Suspense
+              fallback={
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  p={2}
+                >
+                  <CircularProgress />
+                </Box>
+              }
+            >
+              <Navigation />
+              <ProfilePage />
+            </React.Suspense>
           </div>
         </SnackbarProvider>
       </>
