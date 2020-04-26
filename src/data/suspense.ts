@@ -1,21 +1,11 @@
 import * as React from 'react';
-import { getClient } from './client';
-import { KeyValueStore } from 'orbit-db';
 import { User } from '../types/models';
 import { getUserStore } from './sources';
-
-enum SuspenseStatus {
-  Pending,
-  Error,
-  Success,
-}
 
 export type SuspenseKeyValue<S extends Object> = {
   data: S;
   put<K extends keyof S>(key: K, value: S[K]): Promise<string>;
   del<K extends keyof S>(key: K): Promise<string>;
-  onStale(handler: () => void): void;
-  offStale(handler: () => void): void;
 };
 
 export function useUser(address: string): SuspenseKeyValue<User> {
@@ -41,14 +31,6 @@ export function useUser(address: string): SuspenseKeyValue<User> {
     },
     del<K extends keyof User>(key: K) {
       return store.del(key);
-    },
-    onStale(handler) {
-      store.events.on('replicated', handler);
-      store.events.on('write', handler);
-    },
-    offStale(handler) {
-      store.events.off('replicated', handler);
-      store.events.off('write', handler);
     },
   };
 }
