@@ -17,6 +17,7 @@ export function getUserStore(address: string) {
   const store = usersCache.get(address);
 
   if (!store) {
+    // just-in-time loading
     throw preloadUser(address);
   }
 

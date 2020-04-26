@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { User } from '../types/models';
 import { getUserStore } from './sources';
+import { Store } from 'orbit-db';
 
 export type SuspenseKeyValue<S extends Object> = {
   data: S;
@@ -8,10 +9,8 @@ export type SuspenseKeyValue<S extends Object> = {
   del<K extends keyof S>(key: K): Promise<string>;
 };
 
-export function useUser(address: string): SuspenseKeyValue<User> {
-  const store = getUserStore(address);
-
-  const [_refreshKey, setRefreshKey] = React.useState(0);
+function useStoreUpdates(store: Store) {
+  const [refreshKey, setRefreshKey] = React.useState(0);
   React.useEffect(() => {
     const onChange = () => {
       setRefreshKey((cur) => (cur + 1) % 2);
@@ -23,6 +22,14 @@ export function useUser(address: string): SuspenseKeyValue<User> {
       store.events.off('write', onChange);
     };
   }, [store]);
+
+  return refreshKey;
+}
+
+export function useUser(address: string): SuspenseKeyValue<User> {
+  const store = getUserStore(address);
+
+  useStoreUpdates(store);
 
   return {
     data: store.all,
