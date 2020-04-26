@@ -1,6 +1,8 @@
+import * as React from 'react';
 import { getClient } from './client';
 import { KeyValueStore } from 'orbit-db';
 import { User } from '../types/models';
+import { getUserStore } from './sources';
 
 enum SuspenseStatus {
   Pending,
@@ -9,51 +11,31 @@ enum SuspenseStatus {
 }
 
 export type SuspenseKeyValue<S extends Object> = {
-  read(): S;
+  data: S;
   put<K extends keyof S>(key: K, value: S[K]): Promise<string>;
   del<K extends keyof S>(key: K): Promise<string>;
   onStale(handler: () => void): void;
   offStale(handler: () => void): void;
 };
 
-export function fetchUser(address: string): SuspenseKeyValue<User> {
-  let status: SuspenseStatus = SuspenseStatus.Pending;
-  let error: Error | null = null;
-  let store: KeyValueStore<User>;
+export function useUser(address: string): SuspenseKeyValue<User> {
+  const store = getUserStore(address);
 
-  const readyPromise = getClient()
-    .then((client) =>
-      client.keyvalue<User>(address, {
-        accessController: {
-          write: [client.identity.id],
-        },
-      }),
-    )
-    .then((s) => {
-      store = s;
-      console.log('Store loading into memory');
-      return store.load();
-    })
-    .then(() => {
-      status = SuspenseStatus.Success;
-    })
-    .catch((e) => {
-      status = SuspenseStatus.Error;
-      error = e;
-    });
+  const [_refreshKey, setRefreshKey] = React.useState(0);
+  React.useEffect(() => {
+    const onChange = () => {
+      setRefreshKey((cur) => (cur + 1) % 2);
+    };
+    store.events.on('replicated', onChange);
+    store.events.on('write', onChange);
+    return () => {
+      store.events.off('replicated', onChange);
+      store.events.off('write', onChange);
+    };
+  }, [store]);
 
   return {
-    read() {
-      switch (status) {
-        case SuspenseStatus.Pending:
-          throw readyPromise;
-        case SuspenseStatus.Error:
-          throw error;
-        case SuspenseStatus.Success:
-          // won't be null if we're here.
-          return store?.all as User;
-      }
-    },
+    data: store.all,
     put<K extends keyof User>(key: K, value: User[K]) {
       return store.put(key, value);
     },

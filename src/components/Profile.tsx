@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { makeStyles, Theme, TextField, Button } from '@material-ui/core';
-import { fetchUser, SuspenseKeyValue } from '../data/suspense';
+import { SuspenseKeyValue } from '../data/suspense';
 import { User } from '../types/models';
 
 export type ProfileProps = {
@@ -13,7 +13,7 @@ export function Profile(props: ProfileProps) {
   const classes = useStyles(props);
   const { user } = props;
 
-  const profile = user.read();
+  const profile = user.data;
 
   const [editName, setEditName] = React.useState(profile.name);
 
