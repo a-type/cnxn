@@ -11,7 +11,6 @@ import { SnackbarProvider } from 'notistack';
 import { darkTheme, lightTheme } from './theme/theme';
 import Navigation from './components/Navigation';
 import { BrowserRouter } from 'react-router-dom';
-import { ProfilePage } from './pages/ProfilePage';
 
 function InternalApp() {
   const { dark } = useDarkMode();
@@ -44,7 +43,6 @@ function InternalApp() {
               }
             >
               <Navigation />
-              <ProfilePage />
             </React.Suspense>
           </div>
         </SnackbarProvider>

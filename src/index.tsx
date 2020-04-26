@@ -2,7 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { App } from './App';
 import * as serviceWorker from './serviceWorker';
-import './testing';
+
+import { initializeNetwork } from './network/p2p';
+initializeNetwork();
 
 (ReactDOM as any).createRoot(document.getElementById('root')).render(
   <React.StrictMode>
