@@ -6,11 +6,13 @@ import {
   CssBaseline,
   Box,
   CircularProgress,
+  Container,
 } from '@material-ui/core';
 import { SnackbarProvider } from 'notistack';
 import { darkTheme, lightTheme } from './theme/theme';
 import Navigation from './components/Navigation';
 import { BrowserRouter } from 'react-router-dom';
+import { Registration } from './components/Registration';
 
 function InternalApp() {
   const { dark } = useDarkMode();
@@ -43,6 +45,9 @@ function InternalApp() {
               }
             >
               <Navigation />
+              <Container>
+                <Registration />
+              </Container>
             </React.Suspense>
           </div>
         </SnackbarProvider>

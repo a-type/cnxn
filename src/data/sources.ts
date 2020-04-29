@@ -1,6 +1,6 @@
-import { getClient } from './client';
 import { User } from '../types/models';
 import { usersCache } from './cache';
+import { getClient } from './client';
 
 export async function preloadUser(address: string) {
   const client = await getClient();

@@ -61,7 +61,11 @@ declare module 'orbit-db-identity-provider' {
     verifyIdentity(identity: Identity): Promise<boolean>;
 
     static verifyIdentity(identity: Identity): Promise<boolean>;
-    static createIdentity(options?: any): Promise<Identity>;
+    static createIdentity(options?: {
+      id: string;
+      migrate?: any;
+      keystore?: any;
+    }): Promise<Identity>;
     static isSuppoerted(type: string): boolean;
     static addIdentityProvider(identityProvider: IdentityProvider): void;
     static removeIdentityProvider(type: string): void;
