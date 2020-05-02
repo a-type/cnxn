@@ -1,7 +1,4 @@
-import { Store, KeyValueStore } from 'orbit-db';
-import { User } from '../types/models';
-
-export class StoreCache<S extends Store = Store> {
+export class StoreCache<S> {
   private cache: Record<string, S> = {};
 
   get(key: string) {
@@ -17,9 +14,6 @@ export class StoreCache<S extends Store = Store> {
     if (!store) {
       return;
     }
-    await store.close();
     delete this.cache[key];
   }
 }
-
-export const usersCache = new StoreCache<KeyValueStore<User>>();

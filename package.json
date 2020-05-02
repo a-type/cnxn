@@ -15,7 +15,16 @@
     "@types/react": "^16.9.34",
     "@types/react-dom": "^16.9.6",
     "bip39": "^3.0.2",
+    "decentstack": "^0.8.0",
+    "events": "^3.1.0",
+    "hypercore": "^8.13.2",
+    "hyperswarm": "^2.13.0",
+    "hyperswarm-web": "^1.0.3",
+    "hypertrie": "^4.7.1",
     "ipfs": "^0.43.0",
+    "it-pipe": "^1.1.0",
+    "kappa-core": "^6.0.0",
+    "kappa-view": "^3.1.0",
     "libp2p": "^0.27.7",
     "libp2p-bootstrap": "^0.10.4",
     "libp2p-floodsub": "^0.20.3",
@@ -27,21 +36,28 @@
     "libp2p-webrtc-star": "^0.17.9",
     "libp2p-websockets": "^0.13.6",
     "localstorage-level-migration": "^0.1.0",
+    "memdb": "^1.3.1",
+    "multifeed": "^5.2.1",
+    "multifeed-index": "^3.4.1",
     "notistack": "^0.9.11",
     "orbit-db": "^0.23.1",
     "orbit-db-identity-provider": "^0.3.0",
+    "random-access-memory": "^3.1.1",
     "react": "0.0.0-experimental-e5d06e34b",
     "react-dom": "0.0.0-experimental-e5d06e34b",
     "react-router-dom": "^5.1.2",
     "react-scripts": "3.4.1",
-    "typescript": "^3.7.5"
+    "typescript": "^3.7.5",
+    "unordered-materialized-kv": "^1.3.0",
+    "uuid": "^7.0.3"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "star-signal --host=127.0.0.1"
+    "server": "star-signal --host=127.0.0.1",
+    "hs-server": "hyperswarm-web"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -61,6 +77,7 @@
   "devDependencies": {
     "@types/interface-datastore": "^0.8.0",
     "@types/multiaddr": "^7.2.0",
-    "@types/react-router-dom": "^5.1.4"
+    "@types/react-router-dom": "^5.1.4",
+    "@types/uuid": "^7.0.3"
   }
 }

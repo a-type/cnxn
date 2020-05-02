@@ -7,6 +7,7 @@ import WebRTC from 'libp2p-webrtc-star';
 import PubSubPeerDiscovery from 'libp2p-pubsub-peer-discovery';
 import GossipSub from 'libp2p-gossipsub';
 import KadDHT from 'libp2p-kad-dht';
+import pipe from 'it-pipe';
 
 export async function createNode() {
   const node = await Libp2p.create({
@@ -41,7 +42,7 @@ export async function createNode() {
       peerDiscovery: {
         autoDial: true,
         [Bootstrap.tag]: {
-          enabled: true,
+          enabled: false,
           list: [
             '/dns4/ams-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd',
             '/dns4/lon-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3',
@@ -83,16 +84,36 @@ export async function createNode() {
 export async function initializeNetwork() {
   const node = await createNode();
 
+  // Add the signaling server address, along with our PeerId to our multiaddrs list
+  // libp2p will automatically attempt to dial to the signaling server so that it can
+  // receive inbound connections from other peers
+  const webrtcAddr = '/ip4/127.0.0.1/tcp/9090/wss/p2p-webrtc-star';
+  node.peerInfo.multiaddrs.add(webrtcAddr);
+
   node.on('peer:discovery', (peer: any) => {
     console.log(`Discovered %s`, peer.id.toB58String());
   });
-  node.on('peer:conect', (peer: any) => {
+  node.on('peer:connect', async (peer: any) => {
     console.log(`Connected to %s`, peer.id.toB58String());
+
+    const { stream } = await node.dialProtocol(peer, 'protocolName');
+
+    pipe(['hey, Im ' + node.peerInfo.id.toB58String()], stream);
   });
 
   await node.start();
 
   console.log(`My ID is %s`, node.peerInfo.id.toB58String());
+
+  (window as any)['node'] = node;
+
+  node.handle('protocolName', ({ stream }: any) => {
+    pipe(stream, async function (source) {
+      for await (const msg of source) {
+        console.log(msg.toString());
+      }
+    });
+  });
 
   return node;
 }
