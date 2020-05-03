@@ -172,6 +172,65 @@ declare module 'ipfs' {
     stat(cid: FlexibleCID): Promise<any>;
   }
 
+  export interface PubSub {
+    /** Subscribe to a pubsub topic. */
+    subscribe(
+      topic: string,
+      handler: (message: {
+        from: string;
+        seqno: Buffer;
+        data: Buffer;
+        topicIds: string[];
+      }) => any,
+      options?: {},
+    ): Promise<void>;
+    /** Unsubscribes from a pubsub topic */
+    unsubscribe(
+      topic: string,
+      handler: (message: {
+        from: string;
+        seqno: Buffer;
+        data: Buffer;
+        topicIds: string[];
+      }) => any,
+    ): Promise<void>;
+    /** Publish a data message to a pubsub topic */
+    publish(topic: string, data: Buffer | string): Promise<void>;
+    /** Returns the list of subscriptions the peer is subscribed to */
+    ls(): Promise<string[]>;
+    /** Returns the peers that are subscribed to a topic */
+    peers(topic: string): Promise<string[]>;
+  }
+
+  export interface Swarm {
+    /** List of known addresses of each peer connected */
+    addrs(): Promise<{ id: string; addrs: Multiaddr[] }[]>;
+    /** Open a connection to a given address */
+    connect(addr: Multiaddr): Promise<void>;
+    /** Close a connection on a given address */
+    disconnect(addr: Multiaddr): Promise<void>;
+    /** Local addresses this node is listening on */
+    localAddrs(): Promise<Multiaddr[]>;
+    /** List out the peers we have connections with */
+    peers(options?: {
+      direction?: boolean;
+      streams?: boolean;
+      verbose?: boolean;
+      latency?: boolean;
+    }): Promise<
+      {
+        addr: Multiaddr;
+        peer: string;
+        latency?: string;
+        muxer?: string;
+        streams?: string[];
+        direction?: number;
+      }[]
+    >;
+    /** NOT IMPLEMENTED */
+    filters?: any;
+  }
+
   export class IPFS {
     start(): Promise<void>;
     stop(): Promise<void>;
@@ -210,11 +269,11 @@ declare module 'ipfs' {
     name: any;
     object: any;
     pin: any;
-    pubsub: any;
+    pubsub: PubSub;
     refs: any;
     repo: any;
     stats: any;
-    swarm: any;
+    swarm: Swarm;
   }
 
   export function create(options: NodeOptions): Promise<IPFS>;

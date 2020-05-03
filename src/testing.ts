@@ -1,68 +1,25 @@
-export default null;
+import { initIpfs } from './data/ipfs';
 
-// // DELETE ME
-// import { createClient } from './data/client';
+export async function testing() {
+  const ipfs = await initIpfs();
 
-// (async () => {
-//   const { node, pieces, user } = await createClient();
+  const topic = 'mytopic';
+  console.log('Subscribing to topic ' + topic);
 
-//   function getAllPieces() {
-//     return pieces.get('');
-//   }
+  const { id: myId } = await ipfs.id();
 
-//   function getPieceByHash(hash: string) {
-//     return pieces.get(hash)[0];
-//   }
+  ipfs.pubsub.subscribe(topic, (msg: any) => {
+    if (msg.from === myId) return;
+    console.log(`Message from: ${msg.from}: ${msg.data.toString()}`);
+  });
 
-//   function getPieceByInstrument(instrument: string) {
-//     return pieces.query((p) => p.instrument === instrument)[0];
-//   }
+  const frame = () => {
+    const rand = Math.random().toFixed(3);
+    console.log('Sending: ' + rand);
+    ipfs.pubsub.publish(topic, `${rand}!`);
+    console.log(ipfs.pubsub.peers(topic));
+    ipfs.swarm.peers().then(console.log);
+  };
 
-//   async function updatePieceByHash(hash: string, instrument: string) {
-//     const piece = getPieceByHash(hash);
-//     piece.instrument = instrument;
-//     const cid = await pieces.put(piece);
-//     return cid;
-//   }
-
-//   async function deletePieceByHash(hash: string) {
-//     return pieces.del(hash);
-//   }
-
-//   async function addNewPiece(hash: string, instrument = 'Piano') {
-//     const existingPiece = getPieceByHash(hash);
-//     if (existingPiece) {
-//       return updatePieceByHash(hash, instrument);
-//     }
-//     const cid = await pieces.put({ hash, instrument });
-//     return cid;
-//   }
-
-//   async function deleteProfileField(key: string) {
-//     return user.del(key);
-//   }
-
-//   function getAllProfileFields() {
-//     return user.all;
-//   }
-
-//   function getProfileField(key: string) {
-//     return user.get(key);
-//   }
-
-//   function updateProfileField(key: string, value: string) {
-//     return user.set(key, value);
-//   }
-
-//   const cid = await addNewPiece(
-//     'QmNR2n4zywCV61MeMLB6JwPueAPqheqpfiA4fLPMxouEmQ',
-//   );
-//   const content = await node.dag.get(cid);
-//   console.log(content.value.payload);
-
-//   const all = getAllPieces();
-//   all.forEach((p) => console.log(p));
-
-//   await updateProfileField('username', 'gforrest');
-//   console.log(getAllProfileFields());
-// })();
+  setInterval(frame, 10000);
+}

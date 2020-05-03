@@ -9,8 +9,10 @@ import GossipSub from 'libp2p-gossipsub';
 import KadDHT from 'libp2p-kad-dht';
 import pipe from 'it-pipe';
 
-export async function createNode() {
-  const node = await Libp2p.create({
+export function libp2pBundle(opts: any) {
+  const node = new Libp2p({
+    peerInfo: opts.peerInfo,
+    peerBook: opts.peerBook,
     modules: {
       transport: [WebSockets, WebRTC],
       connEncryption: [SECIO],
@@ -43,22 +45,7 @@ export async function createNode() {
         autoDial: true,
         [Bootstrap.tag]: {
           enabled: false,
-          list: [
-            '/dns4/ams-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd',
-            '/dns4/lon-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3',
-            '/dns4/sfo-3.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM',
-            '/dns4/sgp-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu',
-            '/dns4/nyc-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm',
-            '/dns4/nyc-2.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64',
-            '/dns4/ams-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd',
-            '/dns4/lon-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3',
-            '/dns4/sfo-3.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM',
-            '/dns4/sgp-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu',
-            '/dns4/nyc-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm',
-            '/dns4/nyc-2.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64',
-            '/dns4/node0.preload.ipfs.io/tcp/443/wss/p2p/QmZMxNdpMkewiVZLMRxaNxUeZpDUb34pWjZ1kZvsd16Zic',
-            '/dns4/node1.preload.ipfs.io/tcp/443/wss/p2p/Qmbut9Ywz9YEDrz8ySBSgWyJk41Uvm2QJPhwDJzJyGFsD6',
-          ],
+          list: opts.config.Bootstrap,
         },
         [PubSubPeerDiscovery.tag]: {
           interval: 5000,
@@ -78,15 +65,6 @@ export async function createNode() {
     },
   });
 
-  return node;
-}
-
-export async function initializeNetwork() {
-  const node = await createNode();
-
-  // Add the signaling server address, along with our PeerId to our multiaddrs list
-  // libp2p will automatically attempt to dial to the signaling server so that it can
-  // receive inbound connections from other peers
   const webrtcAddr = '/ip4/127.0.0.1/tcp/9090/wss/p2p-webrtc-star';
   node.peerInfo.multiaddrs.add(webrtcAddr);
 
@@ -98,10 +76,8 @@ export async function initializeNetwork() {
 
     const { stream } = await node.dialProtocol(peer, 'protocolName');
 
-    pipe(['hey, Im ' + node.peerInfo.id.toB58String()], stream);
+    pipe(['Greetings from ' + node.peerInfo.id.toB58String()], stream);
   });
-
-  await node.start();
 
   console.log(`My ID is %s`, node.peerInfo.id.toB58String());
 
