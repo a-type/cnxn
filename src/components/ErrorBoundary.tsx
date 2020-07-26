@@ -11,7 +11,7 @@ class InnerErrorBoundary extends React.Component<
     hasError: false,
   };
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
