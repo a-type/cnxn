@@ -23,6 +23,15 @@ declare module 'bugout' {
     [methodName: string]: MethodDescription;
   };
 
+  type PeerRecord = {
+    /** encryption key of peer */
+    ek: string;
+    /** public key of peer */
+    pk: string;
+    /** last time seen (epoch ms) */
+    last: number;
+  };
+
   class Bugout<
     MethodConfig extends MethodDescription = any
   > extends EventEmitter {
@@ -55,6 +64,8 @@ declare module 'bugout' {
 
     /** close the channel */
     close(): void;
+
+    peers: Record<string, PeerRecord>;
   }
 
   export default Bugout;
