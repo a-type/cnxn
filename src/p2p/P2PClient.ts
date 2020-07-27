@@ -310,11 +310,7 @@ export class P2PClient extends EventEmitter {
         );
         this.client.countConnections();
         // TODO: check signature and drop on failure
-        this.client.onSawPeer(
-          handshake.pk.toString(),
-          handshake.ek.toString(),
-          identifier,
-        );
+        this.client.onSawPeer(handshake.pk.toString(), handshake.ek.toString());
       };
 
       onMessage = (message: any) => {
@@ -365,6 +361,21 @@ export class P2PClient extends EventEmitter {
       p: encoded,
     };
     return bencode.encode(signed);
+  };
+
+  // CAREFUL - not sure if this is safe for all circumstances. I'm using it for logging right now.
+  private decodePacket = (packet: PreparedPacket): PreparedPacket => {
+    return Object.entries(packet).reduce<Record<string, any>>(
+      (decoded, [key, value]) => {
+        if (typeof value === 'number') {
+          decoded[key] = value;
+        } else {
+          decoded[key] = value.toString();
+        }
+        return decoded;
+      },
+      {},
+    ) as PreparedPacket;
   };
 
   /** encrypts a packet with our secret key and the public key of a peer before sending */
@@ -420,10 +431,17 @@ export class P2PClient extends EventEmitter {
     debug('sent', hash, 'to', wires.length, 'peers');
   };
 
-  private onMessage = (identifier: string, wire: Wire, message: any) => {
+  private onMessage = (senderAddress: string, wire: Wire, message: any) => {
     const hash = toHex(nacl.hash(message).slice(16));
     const time = new Date().getTime();
-    debug('raw message from', identifier, 'len', message.length, 'hash', hash);
+    debug(
+      'raw message from',
+      senderAddress,
+      'len',
+      message.length,
+      'hash',
+      hash,
+    );
     if (!this.seenMessages[hash]) {
       const decoded: EncryptedPacket | SignedPacket = bencode.decode(message);
       let unpacked: SignedPacket | null = null;
@@ -469,18 +487,20 @@ export class P2PClient extends EventEmitter {
         unpacked.s,
         bs58.decode(publicKey),
       );
-      const checkId = id === identifier;
+      // TODO: consider this requirement - does this mean we can't gossip packets from
+      // mutual friends?
+      const checkId = id === senderAddress;
       const checkTime = packet.t + PEER_TIMEOUT > time;
-      debug('packet', packet);
+      debug('packet', this.decodePacket(packet));
 
       if (checkSignature && checkId && checkTime) {
         // message is authenticated
         const encryptionKey = packet.ek.toString();
-        this.onSawPeer(publicKey, encryptionKey, identifier);
+        this.onSawPeer(publicKey, encryptionKey);
         // check packet types
         const packetType = packet.y.toString();
         if (packetType === PacketType.Message) {
-          debug('message', identifier, packet);
+          debug('message', senderAddress, packet);
           const messageString = packet.v.toString();
           let messageJson: any = null;
           try {
@@ -510,6 +530,12 @@ export class P2PClient extends EventEmitter {
           checkId,
           'checkTime',
           checkTime,
+          'senderAddress',
+          senderAddress,
+          'id',
+          id,
+          'publicKey',
+          publicKey,
         );
       }
 
@@ -523,11 +549,7 @@ export class P2PClient extends EventEmitter {
     this.seenMessages[hash] = time;
   };
 
-  private onSawPeer = (
-    publicKey: string,
-    encryptionKey: string,
-    identifier: string,
-  ) => {
+  private onSawPeer = (publicKey: string, encryptionKey: string) => {
     const address = encodeAddress(publicKey);
     debug('saw peer', address, encryptionKey);
     const time = new Date().getTime();
