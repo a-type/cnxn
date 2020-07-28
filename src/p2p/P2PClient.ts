@@ -1,4 +1,4 @@
-import WebTorrent, { Instance as WebTorrentClass, Torrent } from 'webtorrent';
+import { Instance as WebTorrentClass, Torrent } from 'webtorrent';
 import bencode from 'bencode';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
@@ -14,11 +14,6 @@ const EXT = 'cnxn_channel';
 const PEER_TIMEOUT = 5 * 60 * 1000;
 const SEED_PREFIX = '490a';
 const ADDRESS_PREFIX = '55';
-// using only public service trackers
-const TRACKERS = [
-  'wss://tracker.openwebtorrent.com',
-  'wss://tracker.btorrent.xyz',
-];
 
 enum PacketType {
   Disconnect = 'x',
@@ -32,6 +27,7 @@ const PACKETS = {
 
 type P2PClientOptions = {
   seed?: string;
+  webTorrent: WebTorrentClass;
 };
 
 type PeerData = {
@@ -161,10 +157,10 @@ export class P2PClient extends EventEmitter {
 
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
-  constructor(options: P2PClientOptions = {}) {
+  constructor(options: P2PClientOptions) {
     super();
 
-    this.webTorrent = new WebTorrent({});
+    this.webTorrent = options.webTorrent;
     this.seed = options.seed || generateSeed();
     this.keyPair = generateKeyPair(this.seed);
     this.encryptionKeyPair = nacl.box.keyPair();
@@ -190,10 +186,6 @@ export class P2PClient extends EventEmitter {
     if (this.followTorrents[peerAddress]) return;
     this.followTorrents[peerAddress] = this.joinTorrent(peerAddress);
     debug('started following', peerAddress);
-  };
-
-  listTorrents = () => {
-    return this.webTorrent.torrents.map((t) => t.name);
   };
 
   destroy = () => {
@@ -226,6 +218,7 @@ export class P2PClient extends EventEmitter {
   };
 
   send = (message: any, address?: string) => {
+    debug('send', message, address);
     const packet = this.makePacket({
       y: PacketType.Message,
       v: JSON.stringify(message),
@@ -254,11 +247,10 @@ export class P2PClient extends EventEmitter {
       blob,
       {
         name: address,
-        announce: TRACKERS,
       },
       (tor) => {
-        debug('torrent', address, tor);
-        this.emit('torrent', address, tor);
+        debug('joinTorrent', address, tor);
+        this.emit('joinTorrent', address, tor);
       },
     );
 
@@ -500,7 +492,6 @@ export class P2PClient extends EventEmitter {
         // check packet types
         const packetType = packet.y.toString();
         if (packetType === PacketType.Message) {
-          debug('message', senderAddress, packet);
           const messageString = packet.v.toString();
           let messageJson: any = null;
           try {
@@ -509,6 +500,7 @@ export class P2PClient extends EventEmitter {
             debug('Malformed message JSON:', messageString);
           }
           if (messageJson) {
+            debug('message', address, messageJson, packet);
             this.emit('message', address, messageJson, packet);
           }
         } else if (packetType === PacketType.Ping) {
