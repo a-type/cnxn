@@ -1,24 +1,27 @@
+import localForage from 'localforage';
+
+const connections = localForage.createInstance({
+  name: 'userData_connections',
+});
+
 export const userDataStore = {
   connections: {
-    list: (): string[] => {
-      const stored = localStorage.getItem('userData_connections');
-      if (!stored) return [];
-      try {
-        return JSON.parse(stored);
-      } catch (err) {
-        console.error('UserData connections store corrupted: ', stored);
-        return [];
-      }
+    list: async (): Promise<string[]> => {
+      const stored = await connections.getItem<string[]>('addresses');
+      return stored || [];
     },
-    add: (address: string) => {
-      const stored = localStorage.getItem('userData_connections');
-      try {
-        const parsed: string[] = stored ? JSON.parse(stored) : [];
-        parsed.push(address);
-        localStorage.setItem('userData_connections', JSON.stringify(parsed));
-      } catch (err) {
-        console.error('UserData connections store corrupted: ', stored);
-      }
+    add: async (address: string) => {
+      const stored = await connections.getItem<string[]>('addresses');
+      const set = new Set(stored || []);
+      set.add(address);
+      connections.setItem('addresses', Array.from(set));
+    },
+    remove: async (address: string) => {
+      const stored = await connections.getItem<string[]>('addresses');
+      connections.setItem(
+        'addresses',
+        stored.filter((a) => a !== address),
+      );
     },
   },
 };

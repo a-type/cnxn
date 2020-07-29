@@ -5,7 +5,7 @@ import { P2PClient } from './P2PClient';
 import { MediaClient } from './MediaClient';
 import * as protocol from './protocol';
 import makeDebug from 'debug';
-import { MediaCache } from './MediaCache';
+import { HostedMedia } from './HostedMedia';
 
 const debug = makeDebug('cnxn');
 
@@ -16,10 +16,11 @@ export class CnxnClient extends EventEmitter {
   private webTorrent: WebTorrentClass;
   private p2p: P2PClient;
   private media: MediaClient;
-  private mediaCache: MediaCache = new MediaCache();
+  private mediaCache = new Map<string, HostedMedia>();
 
   constructor() {
     super();
+    debug('constructing new client');
 
     this.webTorrent = new WebTorrent();
     this.p2p = new P2PClient({ webTorrent: this.webTorrent, seed });
@@ -31,6 +32,7 @@ export class CnxnClient extends EventEmitter {
     // subscribe to service events
     this.p2p.on('message', this.handleP2PPacket);
     this.p2p.on('seen', this.handlePeer);
+    this.p2p.on('leave', this.handlePeerLeft);
 
     // try to connect to all peers we know of
     this.restorePeerConnections();
@@ -47,6 +49,7 @@ export class CnxnClient extends EventEmitter {
   };
 
   message = (peerId: string, text: string) => {
+    debug('sending message', text, 'to', peerId);
     this.p2p.send(protocol.message(text), peerId);
   };
 
@@ -76,7 +79,7 @@ export class CnxnClient extends EventEmitter {
     switch (packet.type) {
       case protocol.ProtocolType.Message:
         this.emit('message', {
-          sender: peerId,
+          senderId: peerId,
           text: packet.text,
         });
         break;
@@ -91,7 +94,7 @@ export class CnxnClient extends EventEmitter {
 
   private downloadMedia = async (address: string, publisherId: string) => {
     const mediaObject = await this.media.getMedia(address);
-    this.mediaCache.add(publisherId, mediaObject);
+    this.mediaCache.set(mediaObject.address, mediaObject);
     this.emit('media', {
       sender: publisherId,
       media: mediaObject,
@@ -99,12 +102,19 @@ export class CnxnClient extends EventEmitter {
   };
 
   private handlePeer = async (address: string) => {
+    this.emit('peerJoined', address);
+    debug('peerJoined', address);
     await userDataStore.connections.add(address);
   };
 
+  private handlePeerLeft = async (address: string) => {
+    this.emit('peerLeft', address);
+  };
+
   private restorePeerConnections = async () => {
-    const connections = userDataStore.connections.list();
+    const connections = await userDataStore.connections.list();
     for (const id of connections) {
+      debug('reconnecting to', id);
       this.p2p.follow(id);
     }
   };

@@ -1,12 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { App } from './App';
+import { RecoilRoot } from 'recoil';
 import * as serviceWorker from './serviceWorker';
-import './testing';
+import { ClientProvider } from './contexts/ClientContext';
 
 (ReactDOM as any).createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <React.Suspense fallback={null}>
+      <RecoilRoot>
+        <ClientProvider>
+          <App />
+        </ClientProvider>
+      </RecoilRoot>
+    </React.Suspense>
   </React.StrictMode>,
 );
 

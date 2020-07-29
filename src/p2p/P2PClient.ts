@@ -558,7 +558,7 @@ export class P2PClient extends EventEmitter {
           publicKey,
           lastSeen: time,
         };
-        debug('seen', address);
+        debug('it was a new peer', address);
         this.emit('seen', address);
         // send a confirmation ping
         this.sendPacket(PACKETS.PING);
@@ -566,9 +566,12 @@ export class P2PClient extends EventEmitter {
         // TODO: is this the best place to follow back?
         this.follow(address);
       } else {
+        debug('it was an old peer', address);
         this.clients[address].encryptionKey = encryptionKey;
         this.clients[address].lastSeen = time;
       }
+    } else {
+      debug('it was self', address);
     }
   };
 }
