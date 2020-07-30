@@ -1,20 +1,42 @@
 import * as React from 'react';
-import { HostedMedia } from '../p2p/HostedMedia';
+import { client } from '../p2p/singleton';
 
 export type StreamingMediaProps = {
-  media: HostedMedia;
+  uri: string;
+  limit?: number;
 };
 
-export function StreamingMedia({ media }: StreamingMediaProps) {
+export function StreamingMedia({ uri, limit }: StreamingMediaProps) {
   const elementRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (!elementRef.current) return;
+    (async () => {
+      if (!elementRef.current) return;
+      const media = await client.getMedia(uri);
 
-    for (const file of media.files) {
-      file.appendTo(elementRef.current);
-    }
-  }, [media]);
+      const list = limit ? media.files.slice(0, limit) : media.files;
 
-  return <div ref={elementRef} />;
+      for (const file of list) {
+        file.appendTo(elementRef.current, {}, (err, el) => {
+          el.style.width = '100%';
+        });
+      }
+
+      elementRef.current.style.gridTemplateColumns = `repeat(${Math.ceil(
+        list.length / 2,
+      )}, 1fr)`;
+      elementRef.current.style.gridTemplateRows = `repeat(${Math.ceil(
+        list.length / 2,
+      )}, 1fr)`;
+    })();
+  }, [uri, limit]);
+
+  return (
+    <div
+      ref={elementRef}
+      style={{
+        display: 'grid',
+      }}
+    />
+  );
 }

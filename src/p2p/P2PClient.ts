@@ -434,6 +434,12 @@ export class P2PClient extends EventEmitter {
       'hash',
       hash,
     );
+
+    if (senderAddress === this.address) {
+      debug('ignoring self-message');
+      return;
+    }
+
     if (!this.seenMessages[hash]) {
       const decoded: EncryptedPacket | SignedPacket = bencode.decode(message);
       let unpacked: SignedPacket | null = null;
@@ -562,9 +568,6 @@ export class P2PClient extends EventEmitter {
         this.emit('seen', address);
         // send a confirmation ping
         this.sendPacket(PACKETS.PING);
-
-        // TODO: is this the best place to follow back?
-        this.follow(address);
       } else {
         debug('it was an old peer', address);
         this.clients[address].encryptionKey = encryptionKey;

@@ -1,31 +1,35 @@
+import { Manifest } from '../types';
+
 export enum ProtocolType {
   Message,
-  MediaBroadcast,
+  ManifestUpdate,
 }
 
-export type Message = {
+export type MessagePacket = {
   type: ProtocolType.Message;
   text: string;
 };
 
-export type MediaBroadcast = {
-  type: ProtocolType.MediaBroadcast;
-  address: string;
+export type ManifestPacket = {
+  type: ProtocolType.ManifestUpdate;
+  manifest: Manifest;
 };
 
-export type ProtocolPacket = Message | MediaBroadcast;
+export type ProtocolPacket = MessagePacket | ManifestPacket;
 
-export function message(text: string): Message {
+export function message(data: Omit<MessagePacket, 'type'>): MessagePacket {
   return {
     type: ProtocolType.Message,
-    text,
+    ...data,
   };
 }
 
-export function mediaBroadcast(address: string): MediaBroadcast {
+export function manifestUpdate(
+  data: Omit<ManifestPacket, 'type'>,
+): ManifestPacket {
   return {
-    type: ProtocolType.MediaBroadcast,
-    address,
+    type: ProtocolType.ManifestUpdate,
+    ...data,
   };
 }
 

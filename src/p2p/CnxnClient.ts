@@ -1,11 +1,11 @@
 import WebTorrent, { Instance as WebTorrentClass } from 'webtorrent';
 import { EventEmitter } from 'events';
-import { userDataStore } from '../storage/userDataStore';
 import { P2PClient } from './P2PClient';
 import { MediaClient } from './MediaClient';
 import * as protocol from './protocol';
 import makeDebug from 'debug';
 import { HostedMedia } from './HostedMedia';
+import { Manifest } from '../types';
 
 const debug = makeDebug('cnxn');
 
@@ -33,9 +33,6 @@ export class CnxnClient extends EventEmitter {
     this.p2p.on('message', this.handleP2PPacket);
     this.p2p.on('seen', this.handlePeer);
     this.p2p.on('leave', this.handlePeerLeft);
-
-    // try to connect to all peers we know of
-    this.restorePeerConnections();
   }
 
   get id() {
@@ -44,23 +41,46 @@ export class CnxnClient extends EventEmitter {
 
   connect = (id: string) => {
     this.p2p.follow(id);
-    // this is probably abusing this method - but it works for now
-    this.handlePeer(id);
   };
 
-  message = (peerId: string, text: string) => {
+  privateMessage = (peerId: string, text: string) => {
     debug('sending message', text, 'to', peerId);
-    this.p2p.send(protocol.message(text), peerId);
+    this.p2p.send(protocol.message({ text }), peerId);
   };
 
-  broadcast = (text: string) => {
-    this.p2p.send(protocol.message(text));
+  broadcastMessage = (text: string) => {
+    this.p2p.send(protocol.message({ text }));
   };
 
-  post = async (media: File) => {
+  uploadMedia = async (media: File) => {
     const hosted = await this.media.hostMedia([media], media.name);
-    console.log('hosted media:', hosted.address);
-    this.p2p.send(protocol.mediaBroadcast(hosted.address));
+    this.mediaCache.set(hosted.address, hosted);
+    debug('hosted media', hosted.address, media.name);
+    return hosted;
+  };
+
+  getMedia = async (uri: string) => {
+    const cached = this.mediaCache.get(uri);
+    if (cached) {
+      debug('got cached media', cached.address, cached.name);
+      return cached;
+    }
+
+    const hosted = await this.media.getMedia(uri);
+    this.mediaCache.set(hosted.address, hosted);
+    debug('downloaded media', hosted.address, hosted.name);
+    return hosted;
+  };
+
+  broadcastManifest = async (manifest: Manifest) => {
+    this.p2p.send(
+      protocol.manifestUpdate({
+        manifest,
+      }),
+    );
+    debug('broadcasted manifest update', manifest);
+    // causes a loop! think this through!
+    // this.emit('manifest', manifest);
   };
 
   private handleP2PPacket = (peerId: string, data: any) => {
@@ -83,8 +103,11 @@ export class CnxnClient extends EventEmitter {
           text: packet.text,
         });
         break;
-      case protocol.ProtocolType.MediaBroadcast:
-        this.downloadMedia(packet.address, peerId);
+      case protocol.ProtocolType.ManifestUpdate:
+        this.emit('manifest', {
+          senderId: peerId,
+          manifest: packet.manifest,
+        });
         break;
       default:
         debug('Unrecognized protocol packet type', data, 'from', peerId);
@@ -92,30 +115,12 @@ export class CnxnClient extends EventEmitter {
     }
   };
 
-  private downloadMedia = async (address: string, publisherId: string) => {
-    const mediaObject = await this.media.getMedia(address);
-    this.mediaCache.set(mediaObject.address, mediaObject);
-    this.emit('media', {
-      sender: publisherId,
-      media: mediaObject,
-    });
-  };
-
   private handlePeer = async (address: string) => {
     this.emit('peerJoined', address);
     debug('peerJoined', address);
-    await userDataStore.connections.add(address);
   };
 
   private handlePeerLeft = async (address: string) => {
     this.emit('peerLeft', address);
-  };
-
-  private restorePeerConnections = async () => {
-    const connections = await userDataStore.connections.list();
-    for (const id of connections) {
-      debug('reconnecting to', id);
-      this.p2p.follow(id);
-    }
   };
 }

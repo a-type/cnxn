@@ -10,7 +10,7 @@
 export type Manifest = {
   id: string;
   preferredName: string;
-  avatarLink: string;
-  statusLink: string;
-  recentLinks: string[];
+  avatarUri: string;
+  statusUri: string;
+  recentUris: string[];
 };
