@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectConnections } from './connections';
 import { setActivePeer } from '../session/session';
