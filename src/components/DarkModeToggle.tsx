@@ -5,7 +5,7 @@ import { Brightness2, Brightness7 } from '@material-ui/icons';
 
 export interface DarkModeToggleProps {}
 
-const DarkModeToggle: FC<DarkModeToggleProps> = (props) => {
+const DarkModeToggle: FC<DarkModeToggleProps> = () => {
   const { dark, set } = useDarkMode();
 
   return (

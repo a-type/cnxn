@@ -1,12 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { App } from './App';
+import { Provider } from 'react-redux';
 import * as serviceWorker from './serviceWorker';
-import './testing';
+import { ClientProvider } from './contexts/client/ClientContext';
+import { store } from './store/store';
 
 (ReactDOM as any).createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <React.Suspense fallback={null}>
+      <Provider store={store}>
+        <ClientProvider>
+          <App />
+        </ClientProvider>
+      </Provider>
+    </React.Suspense>
   </React.StrictMode>,
 );
 
