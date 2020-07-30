@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../store/store';
-import { activePeerSelector } from '../session/session';
 
 export type Message = {
   text: string;
@@ -35,8 +34,6 @@ export const messagesReducer = messagesSlice.reducer;
 
 export const { addMessage } = messagesSlice.actions;
 
-export const activeConversationSelector = (state: RootState) => {
-  const activeUserId = activePeerSelector(state);
-  if (!activeUserId) return [];
-  return state.messages[activeUserId]?.history ?? [];
-};
+export const makeConversationSelector = (userId: string) => (
+  state: RootState,
+) => state.messages[userId]?.history ?? [];

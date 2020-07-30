@@ -4,16 +4,23 @@ import { App } from './App';
 import { Provider } from 'react-redux';
 import * as serviceWorker from './serviceWorker';
 import { ClientProvider } from './contexts/client/ClientContext';
-import { store } from './store/store';
+import { store, persistor } from './store/store';
+import { BrowserRouter } from 'react-router-dom';
+import { PersistGate } from 'redux-persist/integration/react';
+import { CircularProgress } from '@material-ui/core';
 
 (ReactDOM as any).createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <React.Suspense fallback={null}>
-      <Provider store={store}>
-        <ClientProvider>
-          <App />
-        </ClientProvider>
-      </Provider>
+      <BrowserRouter>
+        <Provider store={store}>
+          <PersistGate loading={<CircularProgress />} persistor={persistor}>
+            <ClientProvider>
+              <App />
+            </ClientProvider>
+          </PersistGate>
+        </Provider>
+      </BrowserRouter>
     </React.Suspense>
   </React.StrictMode>,
 );

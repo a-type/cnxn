@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { makeStyles, Theme, Box, TextField, BoxProps } from '@material-ui/core';
-import { UploadableImage } from '../../components/UploadableImage';
 import { useDispatch, useSelector } from 'react-redux';
 import { client } from '../../p2p/singleton';
-import { setUserManifest, createUserManifestSelector } from './manifests';
+import { setUserManifest, createUserManifestSelector } from './manifestsSlice';
+import { UploadableMedia } from '../media/UploadableMedia';
+import { RemoteMedia } from '../../media/RemoteMedia';
 
-export type ManifestEditorProps = BoxProps & {
-  userId: string;
-};
+export type ManifestEditorProps = BoxProps & {};
 
 const useStyles = makeStyles<Theme, ManifestEditorProps>((theme) => ({
   avatar: {
@@ -23,24 +22,22 @@ const useStyles = makeStyles<Theme, ManifestEditorProps>((theme) => ({
 
 export function ManifestEditor(props: ManifestEditorProps) {
   const classes = useStyles(props);
-  const { userId, ...rest } = props;
 
   const dispatch = useDispatch();
 
   const manifest = useSelector(createUserManifestSelector(client.id));
 
   const handleAvatarChange = React.useCallback(
-    async (file: File) => {
-      const hosted = await client.uploadMedia(file);
+    async (remoteMedia: RemoteMedia) => {
       dispatch(
         setUserManifest({
           ...manifest,
-          id: userId,
-          avatarUri: hosted.address,
+          id: client.id,
+          avatarUri: remoteMedia.uri,
         }),
       );
     },
-    [manifest, dispatch, userId],
+    [manifest, dispatch],
   );
 
   const handlePreferredNameChange = React.useCallback(
@@ -48,12 +45,12 @@ export function ManifestEditor(props: ManifestEditorProps) {
       dispatch(
         setUserManifest({
           ...manifest,
-          id: userId,
+          id: client.id,
           preferredName: name,
         }),
       );
     },
-    [dispatch, manifest, userId],
+    [dispatch, manifest],
   );
 
   return (
@@ -61,9 +58,9 @@ export function ManifestEditor(props: ManifestEditorProps) {
       display="flex"
       flexDirection="column"
       alignItems="flex-center"
-      {...rest}
+      {...props}
     >
-      <UploadableImage
+      <UploadableMedia
         value={manifest?.avatarUri}
         onChange={handleAvatarChange}
         className={classes.avatar}

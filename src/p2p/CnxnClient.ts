@@ -1,10 +1,9 @@
 import WebTorrent, { Instance as WebTorrentClass } from 'webtorrent';
 import { EventEmitter } from 'events';
 import { P2PClient } from './P2PClient';
-import { MediaClient } from './MediaClient';
+import { MediaClient } from '../media/MediaClient';
 import * as protocol from './protocol';
 import makeDebug from 'debug';
-import { HostedMedia } from './HostedMedia';
 import { Manifest } from '../types';
 
 const debug = makeDebug('cnxn');
@@ -15,8 +14,7 @@ const seed = localStorage.getItem(SEED_KEY) ?? undefined;
 export class CnxnClient extends EventEmitter {
   private webTorrent: WebTorrentClass;
   private p2p: P2PClient;
-  private media: MediaClient;
-  private mediaCache = new Map<string, HostedMedia>();
+  media: MediaClient;
 
   constructor() {
     super();
@@ -39,8 +37,9 @@ export class CnxnClient extends EventEmitter {
     return this.p2p.address;
   }
 
-  connect = (id: string) => {
-    this.p2p.follow(id);
+  connect = async (id: string) => {
+    await this.p2p.follow(id);
+    debug('joinedPeer', id);
   };
 
   privateMessage = (peerId: string, text: string) => {
@@ -50,26 +49,7 @@ export class CnxnClient extends EventEmitter {
 
   broadcastMessage = (text: string) => {
     this.p2p.send(protocol.message({ text }));
-  };
-
-  uploadMedia = async (media: File) => {
-    const hosted = await this.media.hostMedia([media], media.name);
-    this.mediaCache.set(hosted.address, hosted);
-    debug('hosted media', hosted.address, media.name);
-    return hosted;
-  };
-
-  getMedia = async (uri: string) => {
-    const cached = this.mediaCache.get(uri);
-    if (cached) {
-      debug('got cached media', cached.address, cached.name);
-      return cached;
-    }
-
-    const hosted = await this.media.getMedia(uri);
-    this.mediaCache.set(hosted.address, hosted);
-    debug('downloaded media', hosted.address, hosted.name);
-    return hosted;
+    debug('broadcasted message', text);
   };
 
   broadcastManifest = async (manifest: Manifest) => {
@@ -98,12 +78,14 @@ export class CnxnClient extends EventEmitter {
 
     switch (packet.type) {
       case protocol.ProtocolType.Message:
+        debug('saw message', peerId, packet.text);
         this.emit('message', {
           senderId: peerId,
           text: packet.text,
         });
         break;
       case protocol.ProtocolType.ManifestUpdate:
+        debug('saw manifest', peerId, packet.manifest);
         this.emit('manifest', {
           senderId: peerId,
           manifest: packet.manifest,
@@ -116,8 +98,8 @@ export class CnxnClient extends EventEmitter {
   };
 
   private handlePeer = async (address: string) => {
-    this.emit('peerJoined', address);
     debug('peerJoined', address);
+    this.emit('peerJoined', address);
   };
 
   private handlePeerLeft = async (address: string) => {

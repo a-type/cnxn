@@ -11,10 +11,10 @@ import {
 import { SnackbarProvider } from 'notistack';
 import { darkTheme, lightTheme } from './theme/theme';
 import Navigation from './components/Navigation';
-import { BrowserRouter } from 'react-router-dom';
-import { MessageTest } from './components/MessageTest';
-import { ManifestEditor } from './features/manifests/ManifestEditor';
-import { client } from './p2p/singleton';
+import { BrowserRouter, Switch, Route } from 'react-router-dom';
+import { HomePage } from './pages/HomePage';
+import { ConversationPage } from './pages/ConversationPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 function InternalApp() {
   const { dark } = useDarkMode();
@@ -48,13 +48,14 @@ function InternalApp() {
                 }
               >
                 <Navigation />
-                <ManifestEditor
-                  userId={client.id}
-                  mb={3}
-                  alignSelf="center"
-                  maxWidth={600}
-                />
-                <MessageTest />
+                <Switch>
+                  <Route path="/" exact component={HomePage} />
+                  <Route path="/me" component={ProfilePage} />
+                  <Route
+                    path="/conversation/{userId}"
+                    component={ConversationPage}
+                  />
+                </Switch>
               </React.Suspense>
             </Box>
           </Container>

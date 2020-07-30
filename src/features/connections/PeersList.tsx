@@ -1,15 +1,13 @@
 import * as React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { selectConnections } from './connections';
-import { setActivePeer } from '../session/session';
+import { useSelector } from 'react-redux';
+import { connectionsSelector } from './connectionsSlice';
 
-export function PeersList() {
-  const peers = useSelector(selectConnections);
-  const dispatch = useDispatch();
-
-  const handlePeerClick = (peerId: string) => {
-    dispatch(setActivePeer(peerId));
-  };
+export function PeersList({
+  onPeerClicked,
+}: {
+  onPeerClicked: (id: string) => any;
+}) {
+  const peers = useSelector(connectionsSelector);
 
   return (
     <div>
@@ -18,7 +16,7 @@ export function PeersList() {
         {peers.map((peerId) => (
           <li key={peerId}>
             {peerId}{' '}
-            <button onClick={() => handlePeerClick(peerId)}>Select</button>
+            <button onClick={() => onPeerClicked(peerId)}>Select</button>
           </li>
         ))}
       </ul>

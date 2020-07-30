@@ -2,8 +2,13 @@ import { Instance as WebTorrentClass, Torrent } from 'webtorrent';
 import bencode from 'bencode';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
-import bs58Check from 'bs58check';
-import ripemd160 from 'ripemd160';
+import {
+  generateKeyPair,
+  generateSeed,
+  constructSeedBlob,
+  toHex,
+  encodeAddress,
+} from './utils';
 import { EventEmitter } from 'events';
 import makeDebug from 'debug';
 import { Wire, Extension as BittorentExtension } from 'bittorrent-protocol';
@@ -12,8 +17,6 @@ const debug = makeDebug('p2p');
 
 const EXT = 'cnxn_channel';
 const PEER_TIMEOUT = 5 * 60 * 1000;
-const SEED_PREFIX = '490a';
-const ADDRESS_PREFIX = '55';
 
 enum PacketType {
   Disconnect = 'x',
@@ -67,50 +70,6 @@ type EncryptedPacket = {
   ek: string;
 };
 
-/** TODO: use mnemonic instead? */
-function generateSeed() {
-  return bs58Check.encode(
-    Buffer.concat([
-      Buffer.from(SEED_PREFIX, 'hex'),
-      Buffer.from(nacl.randomBytes(32)),
-    ]),
-  );
-}
-
-function generateKeyPair(seed: string) {
-  return nacl.sign.keyPair.fromSeed(
-    Uint8Array.from(bs58Check.decode(seed)).slice(2),
-  );
-}
-
-function constructSeedBlob(address: string) {
-  if (typeof File !== 'undefined') {
-    return new File([address], address);
-  } else {
-    const buf = Buffer.from(address);
-    // @ts-ignore
-    buf.name = address;
-    return buf;
-  }
-}
-
-function encodeAddress(publicKey: string) {
-  return bs58Check.encode(
-    Buffer.concat([
-      Buffer.from(ADDRESS_PREFIX, 'hex'),
-      new ripemd160()
-        .update(Buffer.from(nacl.hash(Uint8Array.from(Buffer.from(publicKey)))))
-        .digest(),
-    ]),
-  );
-}
-
-function toHex(thing: Uint8Array) {
-  return thing.reduce(function (memo, i) {
-    return memo + ('0' + i.toString(16)).slice(-2);
-  }, '');
-}
-
 function isEncryptedPacket(
   packet: EncryptedPacket | SignedPacket,
 ): packet is EncryptedPacket {
@@ -132,7 +91,7 @@ function isEncryptedPacket(
 export class P2PClient extends EventEmitter {
   private webTorrent: WebTorrentClass;
   /** This torrent seeds our own presence in the network. Clients (or 'followers') can join this torrent to connect to us */
-  private identityTorrent: Torrent;
+  private identityTorrent: Torrent | null = null;
   /** Likewise, we will be joining others' torrents to connect to them - these are stored here. */
   private followTorrents: Record<string, Torrent> = {};
 
@@ -171,7 +130,10 @@ export class P2PClient extends EventEmitter {
     );
 
     // start seeding our own torrent
-    this.identityTorrent = this.joinTorrent(this.address);
+    this.joinTorrent(this.address).then((tor) => {
+      this.identityTorrent = tor;
+      debug('identity torrent ready');
+    });
 
     // begin heartbeat
     this.heartbeat();
@@ -181,10 +143,10 @@ export class P2PClient extends EventEmitter {
     return encodeAddress(this.publicKey);
   }
 
-  follow = (peerAddress: string) => {
+  follow = async (peerAddress: string) => {
     // don't join duplicates
     if (this.followTorrents[peerAddress]) return;
-    this.followTorrents[peerAddress] = this.joinTorrent(peerAddress);
+    this.followTorrents[peerAddress] = await this.joinTorrent(peerAddress);
     debug('started following', peerAddress);
   };
 
@@ -194,18 +156,10 @@ export class P2PClient extends EventEmitter {
 
     // send disconnect to all peers
     this.sendPacket(PACKETS.DISCONNECT);
-
-    // stop seeding the torrent
-    return new Promise((resolve, reject) => {
-      this.webTorrent.remove(this.identityTorrent, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
   };
 
   countConnections = () => {
-    const peerCount = this.identityTorrent.numPeers;
+    const peerCount = this.identityTorrent?.numPeers ?? 0;
     if (peerCount !== this.lastPeerCount) {
       this.lastPeerCount = peerCount;
       this.emit('connections', peerCount);
@@ -243,20 +197,21 @@ export class P2PClient extends EventEmitter {
   private joinTorrent = (address: string) => {
     const blob = constructSeedBlob(address);
 
-    const torrent = this.webTorrent.seed(
-      blob,
-      {
-        name: address,
-      },
-      (tor) => {
-        debug('joinTorrent', address, tor);
-        this.emit('joinTorrent', address, tor);
-      },
-    );
-
-    torrent.on('wire', (wire) => this.attach(wire, address));
-
-    return torrent;
+    return new Promise<Torrent>((resolve, reject) => {
+      const torrent = this.webTorrent.seed(
+        blob,
+        {
+          name: address,
+        },
+        (tor) => {
+          debug('joinTorrent', address, tor);
+          this.emit('joinTorrent', address, tor);
+          resolve(tor);
+        },
+      );
+      torrent.on('error', reject);
+      torrent.on('wire', (wire) => this.attach(wire, address));
+    });
   };
 
   private attach = (wire: Wire, identifier?: string) => {
@@ -276,7 +231,6 @@ export class P2PClient extends EventEmitter {
 
     class Extension implements BittorentExtension {
       private wire: Wire;
-      private client = client;
 
       name = EXT;
 
@@ -295,18 +249,18 @@ export class P2PClient extends EventEmitter {
           this.wire.peerId,
           handshake,
         );
-        this.client.emit(
+        client.emit(
           'wireseen',
-          this.client.identityTorrent.numPeers,
+          client.identityTorrent?.numPeers ?? 0,
           this.wire,
         );
-        this.client.countConnections();
+        client.countConnections();
         // TODO: check signature and drop on failure
-        this.client.onSawPeer(handshake.pk.toString(), handshake.ek.toString());
+        client.onSawPeer(handshake.pk.toString(), handshake.ek.toString());
       };
 
       onMessage = (message: any) => {
-        this.client.onMessage(identifier, this.wire, message);
+        client.onMessage(identifier, this.wire, message);
       };
     }
     // @ts-ignore
@@ -408,7 +362,7 @@ export class P2PClient extends EventEmitter {
 
   private sendRaw = (raw: any) => {
     // TODO: understand this better, maybe migrate to use documented APIs.
-    const wires: Wire[] = (this.identityTorrent as any).wires;
+    const wires: Wire[] = (this.identityTorrent as any)?.wires ?? [];
     for (const wire of wires) {
       const extendedHandshake = (wire as any).peerExtendedHandshake;
       if (
@@ -512,6 +466,10 @@ export class P2PClient extends EventEmitter {
         } else if (packetType === PacketType.Ping) {
           debug('ping from', address);
           this.emit('ping', address);
+
+          // MOVING THIS HERE TEMPORARILY - trying to diagnose
+          // timing issues
+          // this.onSawPeer(publicKey, encryptionKey);
         } else if (packetType === PacketType.Disconnect) {
           debug('disconnected from', address);
           this.removePeer(address);

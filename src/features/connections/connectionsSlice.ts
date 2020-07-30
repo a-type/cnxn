@@ -22,4 +22,4 @@ export const connectionsReducer = connectionsSlice.reducer;
 
 export const { addConnection, removeConnection } = connectionsSlice.actions;
 
-export const selectConnections = (state: RootState) => state.connections;
+export const connectionsSelector = (state: RootState) => state.connections;

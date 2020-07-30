@@ -2,7 +2,7 @@ import * as React from 'react';
 import { CnxnClient } from '../../p2p/CnxnClient';
 import { client } from '../../p2p/singleton';
 import { useClientStateSubscriptions } from './useClientStateSubscriptions';
-import { useBootstrapPeers } from './useBootstrapPeers';
+import { useBootstrap } from './useBootstrap';
 
 export const ClientContext = React.createContext<{ client: CnxnClient }>({
   client,
@@ -10,7 +10,7 @@ export const ClientContext = React.createContext<{ client: CnxnClient }>({
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   useClientStateSubscriptions();
-  useBootstrapPeers();
+  useBootstrap();
 
   return <ClientContext.Provider value={{ client }} children={children} />;
 }

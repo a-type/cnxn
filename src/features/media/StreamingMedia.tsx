@@ -1,23 +1,37 @@
 import * as React from 'react';
-import { client } from '../p2p/singleton';
+import { client } from '../../p2p/singleton';
 
-export type StreamingMediaProps = {
+export type StreamingMediaProps = React.HTMLAttributes<HTMLDivElement> & {
   uri: string;
   limit?: number;
 };
 
-export function StreamingMedia({ uri, limit }: StreamingMediaProps) {
+export function StreamingMedia({
+  uri,
+  limit,
+  style,
+  ...rest
+}: StreamingMediaProps) {
   const elementRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     (async () => {
-      if (!elementRef.current) return;
-      const media = await client.getMedia(uri);
+      if (!elementRef.current) {
+        console.debug('StreamingMedia element not yet mounted');
+        return;
+      }
+      const media = await client.media.getMedia(uri);
+
+      console.debug(media.name, media.files);
 
       const list = limit ? media.files.slice(0, limit) : media.files;
 
       for (const file of list) {
         file.appendTo(elementRef.current, {}, (err, el) => {
+          if (err) {
+            console.error(err);
+            return;
+          }
           el.style.width = '100%';
         });
       }
@@ -36,7 +50,9 @@ export function StreamingMedia({ uri, limit }: StreamingMediaProps) {
       ref={elementRef}
       style={{
         display: 'grid',
+        ...style,
       }}
+      {...rest}
     />
   );
 }

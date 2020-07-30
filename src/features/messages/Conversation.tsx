@@ -1,15 +1,13 @@
 import * as React from 'react';
 import { useSelector } from 'react-redux';
-import { activeConversationSelector } from './messages';
-import { activePeerSelector } from '../session/session';
+import { makeConversationSelector } from './messagesSlice';
 
-export function Conversation() {
-  const conversation = useSelector(activeConversationSelector);
-  const peerId = useSelector(activePeerSelector);
+export function Conversation({ userId }: { userId: string }) {
+  const conversation = useSelector(makeConversationSelector(userId));
 
   return (
     <div>
-      <h2>Conversation with {peerId}</h2>
+      <h2>Conversation with {userId}</h2>
       <ul>
         {conversation.map((message) => (
           <li key={message.timestamp}>{message.text}</li>

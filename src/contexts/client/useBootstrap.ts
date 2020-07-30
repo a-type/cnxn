@@ -2,7 +2,7 @@ import * as React from 'react';
 import { userDataStore } from '../../storage/userDataStore';
 import { client } from '../../p2p/singleton';
 
-export function useBootstrapPeers() {
+export function useBootstrap() {
   React.useEffect(() => {
     (async () => {
       const connections = await userDataStore.connections.list();
