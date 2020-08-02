@@ -8,13 +8,18 @@ export type ProfileBubbleProps = {
   className?: string;
 };
 
+const truncate = (str: string, len: number) => {
+  if (str.length < len) return str;
+  return str.substr(0, len - 3) + '...';
+};
+
 export function ProfileBubble({ userId, ...rest }: ProfileBubbleProps) {
   const manifest = useSelector(createUserManifestSelector(userId));
 
   return (
     <Bubble
       imageUri={manifest?.avatarUri}
-      label={manifest?.preferredName}
+      label={truncate(manifest?.preferredName ?? userId, 24)}
       {...rest}
     />
   );
