@@ -2,7 +2,6 @@ import * as React from 'react';
 import { makeStyles, Theme } from '@material-ui/core';
 import { StreamingMedia } from '../features/media/StreamingMedia';
 import clsx from 'clsx';
-import { ArcPath } from './ArcPath';
 
 export type BubbleProps = React.HTMLAttributes<HTMLDivElement> & {
   label?: string;
@@ -16,8 +15,12 @@ const useStyles = makeStyles<Theme, BubbleProps>((theme) => ({
     height: '100%',
   },
   avatar: {
-    width: '100%',
-    height: '100%',
+    width: '66%',
+    height: '66%',
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
     borderRadius: '100%',
     overflow: 'hidden',
     backgroundColor: theme.palette.background.paper,
@@ -44,17 +47,19 @@ export function Bubble(props: BubbleProps) {
         <div className={classes.avatar} />
       )}
       {label && (
-        <svg viewBox="0 0 100 100" className={classes.label}>
-          <ArcPath
-            x={50}
-            y={50}
-            startDegrees={0}
-            endDegrees={160}
-            radius={50}
+        <svg viewBox="0 0 150 150" className={classes.label}>
+          <path
+            d={`
+              M 25, 75
+              a 50,50 0 1,1 100,0
+              a 50,50 0 1,1 -100,0
+            `}
             id="arc"
+            fill="none"
+            stroke="none"
           />
           <text textLength="600" fill="white">
-            <textPath xlinkHref="#arc" {...({ side: 'right' } as any)}>
+            <textPath xlinkHref="#arc" startOffset="25%">
               {label}
             </textPath>
           </text>
