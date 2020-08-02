@@ -26,6 +26,8 @@ export function StreamingMedia({
 
       const list = limit ? media.files.slice(0, limit) : media.files;
 
+      elementRef.current.innerHTML = '';
+
       for (const file of list) {
         file.appendTo(elementRef.current, {}, (err, el) => {
           if (err) {
