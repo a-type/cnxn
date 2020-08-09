@@ -5,8 +5,31 @@ declare module 'ipfs' {
   import multiaddr from 'multiaddr';
   import CID from 'cids';
   import { EventEmitter } from 'events';
+  import { Stream } from 'stream';
 
   type Multiaddr = ReturnType<typeof multiaddr>;
+
+  export interface Connection {
+    localAddr: Multiaddr;
+    remoteAddr: Multiaddr;
+    localPeer: PeerId;
+    remotePeer: PeerId;
+    stat: {
+      direction: string;
+      timeline: {
+        open: number;
+        upgraded: number;
+      };
+      multiplexer: any;
+      encryption: any;
+    };
+    registry: any;
+    streams: Stream[];
+    newStream(protocols: string[]): Promise<any>;
+    removeStream(id: string): void;
+    addStream(stream: Stream, protocol: string, metadata: any): Stream;
+    close(): Promise<void>;
+  }
 
   type FlexibleCID = CID | Buffer | string;
 
@@ -172,6 +195,217 @@ declare module 'ipfs' {
     stat(cid: FlexibleCID): Promise<any>;
   }
 
+  type CommonOptions = {
+    signal?: AbortSignal;
+    timeout?: number;
+  };
+
+  export type PubSubMessage = {
+    from: string;
+    seqno: Buffer;
+    data: Buffer;
+    topicIDs: string[];
+  };
+
+  export interface PubSub {
+    subscribe(
+      topic: string,
+      handler: (msg: PubSubMessage) => void,
+      options?: CommonOptions,
+    ): void;
+    unsubscribe(
+      topic: string,
+      handler: (msg: PubSubMessage) => void,
+      options?: CommonOptions,
+    ): void;
+    publish(
+      topic: string,
+      data: Buffer | string,
+      options?: CommonOptions,
+    ): Promise<void>;
+    ls(options?: CommonOptions): Promise<string[]>;
+    peers(topic: string, options?: CommonOptions): Promise<string[]>;
+  }
+
+  export interface Files {
+    chmod(
+      path: string,
+      mode: number,
+      options?: CommonOptions & {
+        recursive?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    cp(
+      from: string,
+      to: string,
+      options?: CommonOptions & {
+        parents?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    cp(
+      from1: string,
+      from2: string,
+      to: string,
+      options?: CommonOptions & {
+        parents?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    cp(
+      from1: string,
+      from2: string,
+      from3: string,
+      to: string,
+      options?: CommonOptions & {
+        parents?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    mkdir(
+      path: string,
+      options?: CommonOptions & {
+        parents?: boolean;
+        mode?: number;
+        mtime?: Date;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    stat(
+      path: string,
+      options?: CommonOptions & {
+        hash?: boolean;
+        size?: boolean;
+        withLocal?: boolean;
+      },
+    ): Promise<{
+      cid: CID;
+      size?: number;
+      cumulativeSize?: number;
+      type: string;
+      blocks?: number;
+      withLocality: boolean;
+      local?: boolean;
+      sizeLocal?: boolean;
+    }>;
+    touch(
+      path: string,
+      options?: CommonOptions & {
+        mtime?: Date;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    rm(
+      path: string,
+      options?: CommonOptions & {
+        recursive?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    rm(
+      path1: string,
+      path2: string,
+      options?: CommonOptions & {
+        recursive?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    rm(
+      path1: string,
+      path2: string,
+      path3: string,
+      options?: CommonOptions & {
+        recursive?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    read(
+      path: string,
+      options?: CommonOptions & { offset?: number; length?: number },
+    ): AsyncIterable<Buffer>;
+    write(
+      path: string,
+      content: String | Buffer | AsyncIterable<Buffer> | Blob,
+      options?: CommonOptions & {
+        offset?: number;
+        length?: number;
+        create?: boolean;
+        parents?: boolean;
+        truncate?: boolean;
+        rawLeaves?: boolean;
+        mode?: number;
+        mtime?: Date;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<{ cid: string; size: number }>;
+    mv(
+      from: string,
+      to: string,
+      options?: CommonOptions & {
+        parents?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    mv(
+      from1: string,
+      from2: string,
+      to: string,
+      options?: CommonOptions & {
+        parents?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    mv(
+      from1: string,
+      from2: string,
+      from3: string,
+      to: string,
+      options?: CommonOptions & {
+        parents?: boolean;
+        flush?: boolean;
+        hashAlg?: string;
+        cidVersion?: number;
+      },
+    ): Promise<void>;
+    flush(path: string, options?: CommonOptions): Promise<CID>;
+    ls(
+      path: string,
+      options: CommonOptions,
+    ): AsyncIterable<{
+      name: string;
+      type: 'directory' | 'file';
+      size: number;
+      cid: CID;
+      mode: number;
+      mtime: { secs: number; nsecs: number };
+    }>;
+  }
+
   export class IPFS {
     start(): Promise<void>;
     stop(): Promise<void>;
@@ -201,16 +435,17 @@ declare module 'ipfs' {
 
     dag: DAG;
     bitswap: Bitswap;
+    pubsub: PubSub;
+    files: Files;
+    libp2p: any;
     // TODO:
     bootstrap: any;
     config: any;
     dht: any;
-    files: any;
     key: any;
     name: any;
     object: any;
     pin: any;
-    pubsub: any;
     refs: any;
     repo: any;
     stats: any;
@@ -228,18 +463,4 @@ declare module 'ipfs' {
   export type multihash = any;
   export type multihashing = any;
   export type multicodec = any;
-
-  export default {
-    crypto,
-    isIPFS,
-    Buffer,
-    PeerInfo,
-    multibase,
-    multihash,
-    multihashing,
-    multicodec,
-    CID,
-    PeerId,
-    multiaddr,
-  };
 }

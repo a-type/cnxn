@@ -19,6 +19,7 @@
     "debug": "^4.1.1",
     "end-of-stream": "^1.4.1",
     "localforage": "^1.8.1",
+    "localstorage-level-migration": "^0.1.0",
     "magnet-uri": "^5.3.0",
     "ripemd160": "^2.0.2",
     "shortid": "^2.2.15",

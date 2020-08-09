@@ -1,8 +1,7 @@
-import { Manifest } from '../types';
-
 export enum ProtocolType {
   Message,
-  ManifestUpdate,
+  Introduction,
+  Greeting,
 }
 
 export type MessagePacket = {
@@ -10,12 +9,23 @@ export type MessagePacket = {
   text: string;
 };
 
-export type ManifestPacket = {
-  type: ProtocolType.ManifestUpdate;
-  manifest: Manifest;
+export type IntroductionPacket = {
+  type: ProtocolType.Introduction;
+  address: string;
+  id: string;
 };
 
-export type ProtocolPacket = MessagePacket | ManifestPacket;
+export type GreetingPacket = {
+  type: ProtocolType.Greeting;
+  address: string;
+  id: string;
+  to: string;
+};
+
+export type ProtocolPacket =
+  | MessagePacket
+  | IntroductionPacket
+  | GreetingPacket;
 
 export function message(data: Omit<MessagePacket, 'type'>): MessagePacket {
   return {
@@ -24,11 +34,18 @@ export function message(data: Omit<MessagePacket, 'type'>): MessagePacket {
   };
 }
 
-export function manifestUpdate(
-  data: Omit<ManifestPacket, 'type'>,
-): ManifestPacket {
+export function introduction(
+  data: Omit<IntroductionPacket, 'type'>,
+): IntroductionPacket {
   return {
-    type: ProtocolType.ManifestUpdate,
+    type: ProtocolType.Introduction,
+    ...data,
+  };
+}
+
+export function greeting(data: Omit<GreetingPacket, 'type'>): GreetingPacket {
+  return {
+    type: ProtocolType.Greeting,
     ...data,
   };
 }

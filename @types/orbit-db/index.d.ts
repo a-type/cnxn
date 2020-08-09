@@ -1,5 +1,5 @@
 declare module 'orbit-db' {
-  import IPFS from 'ipfs';
+  import { IPFS } from 'ipfs';
   import { EventEmitter } from 'events';
 
   type Keystore = any;
@@ -101,7 +101,7 @@ declare module 'orbit-db' {
   }
 
   export interface DocumentStore<D = any> extends Store {
-    put(doc: D): Promise<string>;
+    put(doc: D, options?: any): Promise<string>;
     get(key: string): D[];
     query(mapper: (doc: D) => boolean): D[];
     del(key: string): Promise<string>;
